@@ -1,32 +1,80 @@
 module.exports = function (grunt) {
-	/*
-		execute All task registred.
+	/* 
+		디렉토리를 생성하고 지워보자.
+		새로운 디렉토리를 생성하고
+		원본 소스를 복사해서 이동시켜보자.
+		그리고 실행할 때마다 목적 디렉토리를 지우고 
+		다시 갱신된 소스로 재반복하게 되는 작업을 진행해보자.
 	*/
-	grunt.registerTask('All', ['greeting', 'test']);
 
-	/*
-		Just test grunt command
-	*/
-	grunt.registerTask('greeting', function(){
-		console.log('Hello Grunt');
-	}); 
-
-	/*
-		test my app
-	*/
-	grunt.registerTask('test', function (){
-		console.log('go test automatically');
+	grunt.config.init({
+		copyFiles: {
+			options: {
+				workingDirectory: 'dist',
+				manifest: [
+					'index.html',
+					'css/',
+					'js/'
+				]
+			}
+		}
 	});
 
-	/*
-		첫번째 파라미터는 task 이름
-		두번째 파라미터는 task 설명
-		서번째 파라미터는 콜백함수로 수행할 태스크
-	*/
-	grunt.registerTask('Love', 'Love Test', function () {
-		var love = ['I Love You', 'You Love Me', 'He Loves You', 'I love him', 'She Loves You', 'I Love Her'];
-		var isLove = love[Math.floor(Math.random()*love.length)];
-		grunt.log.writeln(isLove);
+	grunt.registerTask('create', 'Create destination Folder', function () {
+		grunt.config.requires('copyFiles.options.workingDirectory');
+		grunt.file.mkdir(grunt.config.get('copyFiles.options.workingDirectory'));
 	});
+
+	
+	grunt.registerTask('clean', 'Delete destination folder', function(){
+		grunt.config.requires('copyFiles.options.workingDirectory');
+		grunt.file.delete(grunt.config.get('copyFiles.options.workingDirectory'));
+	});
+
+
+	// grunt.registerTask('copy','copy and paste file to the destination', function (){
+	// 	var files, workingDirectory;
+
+	// 	grunt.config.requires('copyFiles.options.workingDirectory');
+	// 	grunt.config.requires('copyFiles.options.manifest');
+
+	// 	files = grunt.config.get('copyFiles.options.manifest');
+	// 	workingDirectory = grunt.config.get('copyFiles.options.workingDirectory');
+
+	// 	files.forEach(function (file){
+	// 		var destination = workingDirectory + '/' + file;
+	// 		grunt.log.writeln('Copying ' + file + ' to ' + destination);
+	// 		grunt.file.copy(file, destination);
+	// 	});
+	// });
+	
+
+	grunt.registerTask('copy','copy and paste file to the destination', function (){
+		var files, workingDirectory, recursiveCopy;
+
+		grunt.config.requires('copyFiles.options.workingDirectory');
+		grunt.config.requires('copyFiles.options.manifest');
+
+		files = grunt.config.get('copyFiles.options.manifest');
+		workingDirectory = grunt.config.get('copyFiles.options.workingDirectory');
+
+		recursiveCopy = function (source, destination) {
+			if(grunt.file.isDir(source)){ // 디렉토리이면 
+				grunt.file.recurse(source, function (file) {
+					recursiveCopy(file, destination);
+				});
+			}else{
+				grunt.log.writeln('Copying ' + source + ' to ' + destination);
+				grunt.file.copy(source, destination + '/' + source);
+			}
+		};
+
+		files.forEach(function (item){
+			recursiveCopy(item, workingDirectory);
+		});
+	});
+
+	grunt.registerTask('deploy', 'Deploy project', ['clean', 'create', 'copy']);
+
 }
 
